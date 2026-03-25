@@ -2,15 +2,17 @@ pipeline {
     agent any
 
     environment {
-        // 1. Updated to your Docker Hub username
+        // Your Docker Hub username
         DOCKER_USER = "keerthanabm"
         
-        // 2. This must match the ID you created in Jenkins Credentials (Manage Jenkins > Credentials)
+        // The ID of the credentials you created in Jenkins
         REGISTRY_CREDENTIALS = 'docker-hub-creds'
         
-        // 3. Updated to your own project names
-        IMAGE_NAME = "my-python-app"
-        CONTAINER_NAME = "keerthana-container"
+        // This is what the image will be called on Docker Hub
+        IMAGE_NAME = "dockerprg"
+        
+        // The name for the container running on your local machine
+        CONTAINER_NAME = "my-docker-app"
     }
 
     stages {
@@ -24,7 +26,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo '🔨 Building Docker Image...'
-                // Using DOCKER_BUILDKIT=0 to avoid the buildx metadata error we saw earlier
+                // Using DOCKER_BUILDKIT=0 to avoid the error we saw in your terminal earlier
                 sh "DOCKER_BUILDKIT=0 docker build -t ${DOCKER_USER}/${IMAGE_NAME}:latest ."
             }
         }
@@ -32,7 +34,7 @@ pipeline {
         stage('Test') {
             steps {
                 echo '🧪 Running Python Syntax Check...'
-                // This assumes you have a file named app.py in your GitHub repo
+                // This checks your app.py for errors
                 sh "python3 -m py_compile app.py"
             }
         }
@@ -40,7 +42,7 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    // This logs into Docker Hub using your Jenkins credentials
+                    // This logs you into Docker Hub automatically
                     docker.withRegistry('', "${REGISTRY_CREDENTIALS}") {
                         echo '📤 Pushing Image to Docker Hub...'
                         sh "docker push ${DOCKER_USER}/${IMAGE_NAME}:latest"
@@ -52,7 +54,6 @@ pipeline {
         stage('Deploy Local') {
             steps {
                 echo '🚀 Refreshing Local Container...'
-                // Stop and remove the old container so the new one can use the same port
                 sh "docker stop ${CONTAINER_NAME} || true"
                 sh "docker rm ${CONTAINER_NAME} || true"
                 sh "docker run -d -p 5000:5000 --name ${CONTAINER_NAME} ${DOCKER_USER}/${IMAGE_NAME}:latest"
@@ -62,10 +63,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Success! Your image is on Docker Hub and running locally at http://localhost:5000'
+            echo '✅ Success! Your image is now on Docker Hub under keerthanabm/dockerprg'
         }
         failure {
-            echo '❌ Pipeline Failed. Check the Console Output for login errors or missing files.'
+            echo '❌ Pipeline Failed. Check the Console Output in Jenkins.'
         }
     }
 }
